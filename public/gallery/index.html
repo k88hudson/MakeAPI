@@ -8,9 +8,15 @@
   <link rel="stylesheet" href="style/style.css">
 </head>
 <body>
+  <header>
+    <a class="featured-btn">Featured</a>
+    <a class="remix-btn">Remix</a>
+    <a class="fillmurray">Fillmurray</a>
+  </header>
   <div class="gallery">
   </div>
   <script src="/js/make-api.js"></script>
+  <script src="js/packery.js"></script>
   <script>
     var LIMIT = 30;
 
@@ -18,7 +24,12 @@
       makeAPI: "http://localhost:5000"
     });
 
-    var _gallery = document.querySelector( ".gallery" );
+    var _gallery = document.querySelector( ".gallery" ),
+        _featuredBtn = document.querySelector( ".featured-btn" ),
+        _remixBtn = document.querySelector( ".remix-btn" ),
+        _fm = document.querySelector( ".fillmurray" );
+
+    var packery = new Packery( _gallery );
 
     function getFeatured( callback ) {
       make.all
@@ -41,32 +52,128 @@
         .then( callback );
     }
 
-    function setup( data ) {
-      var makes = data.hits;
+    function convertTags( tagList ) {
+      var tag,
+          obj = {};
 
-      var make,
-          el,
-          thumbEl,
-          titleEl;
+      for ( var i = 0; i < tagList.length; i++ ) {
+        tag = tagList[ i ].split( ":" );
+        if ( tag.length === 2 ) {
+          obj[ tag[ 0 ] ] = tag[ 1 ];
+        } else {
+          obj[ tag[ 0 ] ] = true;
+        }
+      }
+      return obj;
+    }
+
+    function flippable() {
+      this.classList.toggle( "flipped" );
+    }
+
+    function grow() {
+      this.classList.toggle( "big" );
+      packery.layout();
+    }
+
+    function randomNumber( x, y ) {
+      return Math.floor(Math.random() * y) + x;
+    }
+
+
+    function createMakeEl( data ) {
+      var innerEl = document.createElement( "div" ),
+          outerEl = document.createElement( "div" ),
+          frontEl = document.createElement( "div" ),
+          backEl = document.createElement( "div" ),
+          titleEl = document.createElement( "h3" ),
+          authorEl = document.createElement( "div" ),
+          labelEl = document.createElement( "div" ),
+          thumbEl;
+
+      var tags = convertTags( data.tags );
+
+      console.log( tags[ "featured" ] );
+
+      titleEl.classList.add( "title" );
+      titleEl.innerHTML = data.title;
+
+      authorEl.classList.add( "author" );
+      authorEl.innerHTML = "Created by " + data.author + " on " + data.createdAt;
+
+      if ( tags.makeType === "popcorn" ) {
+        thumbEl = document.createElement( "iframe" );
+        thumbEl.src = data.url + "_"
+      } else {
+        thumbEl = document.createElement( "img" );
+        thumbEl.src = data.thumbnail;
+      }
+
+      frontEl.classList.add( "front" );
+      frontEl.appendChild( titleEl );
+      frontEl.appendChild( authorEl );
+      frontEl.appendChild( thumbEl );
+
+      backEl.classList.add( "back" );
+
+      innerEl.classList.add( "flip-container" );
+      innerEl.appendChild( frontEl );
+      innerEl.appendChild( backEl );
+
+
+      if ( tags.makeType ) {
+        outerEl.classList.add( "type-" +  tags.makeType );
+        labelEl.innerHTML = tags.makeType;
+        labelEl.classList.add( "label" );
+        frontEl.appendChild( labelEl );
+      }
+
+      outerEl.addEventListener( "click", grow, false );
+      outerEl.classList.add( "make-container" );
+      outerEl.appendChild( innerEl );
+
+      if ( _gallery.firstChild ) {
+        _gallery.insertBefore(  outerEl, _gallery.firstChild );
+      } else {
+        _gallery.appendChild( outerEl );
+      }
+      packery.appended( outerEl );
+      return outerEl;
+    }
+
+    function setup( data ) {
+      var makes = data.hits,
+          m;
+
+      console.log( makes );
 
       for ( var i = 0; i < makes.length; i++ ) {
-        make = makes[ i ];
-        el = document.createElement( "div" );
-        titleEl = document.createElement( "h3" );
-        thumbEl = document.createElement( "img" );
-
-        titleEl.classList.add( "title" );
-        titleEl.innerHTML = make.title + " created by " + make.author;
-        thumbEl.src = make.thumbnail;
-
-        el.classList.add( "gallery-item" );
-        el.appendChild( titleEl );
-        el.appendChild( thumbEl );
-        _gallery.appendChild( el );
+        m = createMakeEl( makes[ i ] );
+        if ( i === 0 ) {
+          m.classList.add( "big" );
+        }
       }
     }
 
-    getFeatured( setup );
+    _featuredBtn.addEventListener( "click", function() {
+      _gallery.innerHTML = "";
+      getFeatured( setup );
+      packery.layout();
+    }, false );
+
+    _remixBtn.addEventListener( "click", function() {
+       _gallery.innerHTML = "";
+      getRemixes( setup );
+      packery.layout();
+    }, false );
+
+    _fm.addEventListener( "click", function() {
+      var imgs = document.querySelectorAll( "img" );
+      for ( var i = 0; i < imgs.length; i++ ) {
+        imgs[ i ].src = "http://www.fillmurray.com/" + randomNumber( 300, 400 ) + "/" + randomNumber( 200, 300 );
+      }
+    }, false );
+
 
   </script>
 </body>

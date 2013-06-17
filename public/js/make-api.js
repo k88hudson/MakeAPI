@@ -413,7 +413,8 @@ var module = module || undefined;
       },
 
       then: function( callback ) {
-        var searchQuery = BASE_QUERY;
+        var searchQuery = BASE_QUERY,
+            stringifiedQuery;
 
         searchQuery.size = this.size;
         searchQuery.from = ( this.pageNum - 1 ) * this.size;
@@ -438,18 +439,20 @@ var module = module || undefined;
         this.searchFilters = [];
         this.sortBy = [];
 
+        stringifiedQuery = escape( JSON.stringify( searchQuery ) );
+
         doXHR( "GET", "/api/makes/search",
           escape( JSON.stringify( searchQuery ) ),
-          function( err, data ) {
+          function( err, data, query ) {
             if ( err ) {
-              callback( err );
+              callback( err, null, searchQuery, stringifiedQuery );
             } else {
               // Wrap resulting makes with some extra API.
               var hits = data;
               for( var i = 0; i < hits.length; i++ ) {
                 hits[ i ] = wrap( hits[ i ], options );
               }
-              callback( null, hits );
+              callback( null, hits, searchQuery, stringifiedQuery );
             }
           }
         );
